@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -e
+
+if [ "$1" = 'jupyter notebook' -a "$(id -u)" = '0' ]; then
+  find . \! -user notebook -exec chown notebook '{}' +
+  exec su-exec jupyter notebook "$0" "$@"
+fi
+
+echo "user $(id -u) and group $(id -g) passed"
+exec jupyter notebook "$@"

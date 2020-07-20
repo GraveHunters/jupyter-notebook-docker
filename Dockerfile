@@ -17,7 +17,7 @@ LABEL org.opencontainers.image.created="${BUILD_DATE_TIME}" \
   org.opencontainers.image.source="" \
   org.opencontainers.image.version="" \
   org.opencontainers.image.revision="" \
-  org.opencontainers.image.vendor="sosukeinu" \
+  org.opencontainers.image.vendor="The Grave Hunters Society" \
   org.opencontainers.image.licenses="" \
   org.opencontainers.image.ref.name="" \
   org.opencontainers.image.title="Extensible Jupyter Notebooks - Base Image" \
@@ -28,14 +28,20 @@ LABEL org.opencontainers.image.created="${BUILD_DATE_TIME}" \
   afrl.cecep.image.component.python.version="${PYTHON_VERSION}" \
   afrl.cecep.image.component.pip.version="${PIP_VERSION}"
 
-USER root
+# USER root
+ARG HOST_USER
+ARG HOST_GROUP
+RUN addgroup -S -g ${HOST_GROUP} notebook && adduser -S notebook  -G notebook -u ${HOST_USER} -h /home/notebook -s /bin/bash
+
+ARG APKS
+
+COPY ./install-scripts/apks.sh /apks.sh
 
 ARG PIPS
 
 COPY ./install-scripts/pips.sh /pips.sh
 
-# COPY ./install-scripts/pip.conf /etc/pip.conf
-
+RUN chmod +x /apks.sh
 RUN chmod +x /pips.sh
 RUN apk update \
     && apk add --no-cache --virtual .build-deps \
@@ -54,20 +60,23 @@ RUN apk update \
       wget \
       git \
     && apk add --no-cache --update python3 \
+    && ./apks.sh --APKS=${APKS} \
     && ./pips.sh --PIPS=${PIPS} \
     && ln -s pip3 /usr/local/pip \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && pip3 install --upgrade pip setuptools wheel \
     && echo $(python --version | awk '{print $2}') > /pyversion \
     && echo "Python Version: $(cat /pyversion)" \
-    && mkdir /notebooks \
     && apk del \
       tzdata \
       build-base \
       git
 
+RUN mkdir /notebooks && chown notebook:notebook /notebooks
+RUN mkdir /site && chown notebook:notebook /site
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV LIBRARY_PATH=/lib:/usr/lib
 
 ENV SHELL=/bin/bash
 
@@ -76,8 +85,11 @@ WORKDIR /notebooks
 EXPOSE 8888
 
 VOLUME [/notebooks]
+VOLUME [/site]
+VOLUME [/home/notebooks]
+USER notebook
 
-# CMD ["/bin/bash" "-c" "jupyter notebook --allow-root"]
-CMD jupyter notebook --allow-root
+COPY ./install-scripts/docker-entrypoint /usr/local/bin/
+ENTRYPOINT ["docker-entrypoint"]
 
 COPY ./install-scripts/jupyter_notebook_config.py /etc/jupyter/jupyter_notebook_config.py
