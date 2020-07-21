@@ -28,7 +28,7 @@ LABEL org.opencontainers.image.created="${BUILD_DATE_TIME}" \
   afrl.cecep.image.component.python.version="${PYTHON_VERSION}" \
   afrl.cecep.image.component.pip.version="${PIP_VERSION}"
 
-# USER root
+
 ARG HOST_USER
 ARG HOST_GROUP
 RUN addgroup -S -g ${HOST_GROUP} notebook && adduser -S notebook  -G notebook -u ${HOST_USER} -h /home/notebook -s /bin/bash
@@ -73,7 +73,6 @@ RUN apk update \
       git
 
 RUN mkdir /notebooks && chown notebook:notebook /notebooks
-RUN mkdir /site && chown notebook:notebook /site
 
 ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ENV LIBRARY_PATH=/lib:/usr/lib
@@ -85,8 +84,7 @@ WORKDIR /notebooks
 EXPOSE 8888
 
 VOLUME [/notebooks]
-VOLUME [/site]
-VOLUME [/home/notebooks]
+VOLUME [/home/notebook]
 USER notebook
 
 COPY ./install-scripts/docker-entrypoint /usr/local/bin/
